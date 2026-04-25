@@ -1,9 +1,145 @@
 <!DOCTYPE html>
-<html>
-<body>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>房產影片資訊網</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        /* 處理影片比例，確保手機/電腦看都不會變形 */
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 比例 */
+            height: 0;
+            overflow: hidden;
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
 
-<h1>My First Heading</h1>
-<p>My first paragraph.</p>
+<div id="app">
+    <nav class="bg-blue-600 text-white p-4 sticky top-0 z-50 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">搵樓專區</h1>
+            <div class="hidden md:block">專業房產經紀</div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-4">
+        <div class="flex flex-wrap gap-2 mb-6">
+            <button 
+                @click="selectedTag = '全部'"
+                :class="selectedTag === '全部' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'"
+                class="px-4 py-2 rounded-full border shadow-sm transition">
+                全部
+            </button>
+            <button 
+                v-for="tag in allTags" 
+                @click="selectedTag = tag"
+                :class="selectedTag === tag ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'"
+                class="px-4 py-2 rounded-full border shadow-sm transition">
+                #{{ tag }}
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div v-for="video in filteredVideos" :key="video.id" class="bg-white rounded-xl overflow-hidden shadow-lg">
+                <div class="video-container" v-html="video.embedCode"></div>
+                
+                <div class="p-4">
+                    <h3 class="font-bold text-lg mb-2">{{ video.title }}</h3>
+                    <div class="flex flex-wrap gap-1">
+                        <span v-for="t in video.tags" class="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600">
+                            #{{ t }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 mb-20">
+        <div class="bg-white rounded-2xl p-6 shadow-inner border-2 border-blue-100 text-center">
+            <h2 class="text-2xl font-bold text-blue-600 mb-4">搵樓Call我</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <a href="tel:+85212345678" class="flex items-center justify-center bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600">
+                    📞 手提：1234 5678
+                </a>
+                <div class="flex items-center justify-center bg-green-500 text-white p-3 rounded-lg">
+                    💬 微信：YourWeChatID
+                </div>
+                <a href="https://wa.me/85212345678" target="_blank" class="flex items-center justify-center bg-green-600 text-white p-3 rounded-lg hover:bg-green-700">
+                    🟢 WhatsApp 聯絡
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="md:hidden fixed bottom-0 w-full bg-white border-t flex justify-around p-3 shadow-2xl z-50">
+        <a href="tel:+85212345678" class="text-blue-600 font-bold text-center">
+            <span class="block text-xl">📞</span> 立即致電
+        </a>
+        <a href="https://wa.me/85212345678" class="text-green-600 font-bold text-center">
+            <span class="block text-xl">💬</span> WhatsApp
+        </a>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, computed } = Vue;
+
+    createApp({
+        setup() {
+            const selectedTag = ref('全部');
+
+            // 影片資料庫：你只需要在這裡增加或修改影片
+            const videos = ref([
+                {
+                    id: 1,
+                    title: '西九龍三房豪宅巡禮',
+                    tags: ['豪宅', '西九龍', '三房'],
+                    // YouTube 嵌入代碼範例
+                    embedCode: '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>'
+                },
+                {
+                    id: 2,
+                    title: '上車首選！屯門兩房介紹',
+                    tags: ['上車盤', '屯門', '兩房'],
+                    embedCode: '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>'
+                },
+                {
+                    id: 3,
+                    title: '罕有特色平台戶',
+                    tags: ['特色戶', '豪宅'],
+                    embedCode: '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>'
+                }
+            ]);
+
+            // 自動提取所有不重複的 Tags
+            const allTags = computed(() => {
+                const tags = new Set();
+                videos.value.forEach(v => v.tags.forEach(t => tags.add(t)));
+                return Array.from(tags);
+            });
+
+            // 篩選邏輯
+            const filteredVideos = computed(() => {
+                if (selectedTag.value === '全部') return videos.value;
+                return videos.value.filter(v => v.tags.includes(selectedTag.value));
+            });
+
+            return { videos, selectedTag, allTags, filteredVideos };
+        }
+    }).mount('#app');
+</script>
 
 </body>
 </html>
