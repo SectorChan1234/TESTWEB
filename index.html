@@ -3,93 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>房產影片資訊網</title>
+    <title>專業搵樓影片庫</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
-        /* 處理影片比例，確保手機/電腦看都不會變形 */
-        .video-container {
-            position: relative;
-            padding-bottom: 56.25%; /* 16:9 比例 */
-            height: 0;
-            overflow: hidden;
-        }
-        .video-container iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
+        .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; }
+        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        /* 自定義捲軸 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-slate-50 text-slate-900">
 
-<div id="app">
-    <nav class="bg-blue-600 text-white p-4 sticky top-0 z-50 shadow-md">
+<div id="app" class="pb-24">
+    <header class="bg-white border-b sticky top-0 z-50 p-4 shadow-sm">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold">搵樓專區</h1>
-            <div class="hidden md:block">專業房產經紀</div>
+            <div class="font-black text-2xl text-blue-700">HOME VIDEO</div>
+            <div class="text-sm font-medium bg-blue-50 text-blue-700 px-3 py-1 rounded-full">專業地產顧問</div>
         </div>
-    </nav>
+    </header>
 
-    <div class="container mx-auto p-4">
-        <div class="flex flex-wrap gap-2 mb-6">
-            <button 
-                @click="selectedTag = '全部'"
-                :class="selectedTag === '全部' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'"
-                class="px-4 py-2 rounded-full border shadow-sm transition">
-                全部
-            </button>
-            <button 
-                v-for="tag in allTags" 
-                @click="selectedTag = tag"
-                :class="selectedTag === tag ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'"
-                class="px-4 py-2 rounded-full border shadow-sm transition">
-                #{{ tag }}
-            </button>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div v-for="video in filteredVideos" :key="video.id" class="bg-white rounded-xl overflow-hidden shadow-lg">
-                <div class="video-container" v-html="video.embedCode"></div>
+    <main class="container mx-auto p-4">
+        <div class="bg-white rounded-2xl shadow-sm p-6 mb-8 border border-slate-200">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
+                <h2 class="font-bold text-lg flex items-center">
+                    <span class="mr-2">🔍 篩選影片</span>
+                    <span class="text-sm font-normal text-slate-500">(可多選)</span>
+                </h2>
                 
-                <div class="p-4">
-                    <h3 class="font-bold text-lg mb-2">{{ video.title }}</h3>
-                    <div class="flex flex-wrap gap-1">
-                        <span v-for="t in video.tags" class="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600">
-                            #{{ t }}
-                        </span>
+                <div class="flex items-center bg-slate-100 p-1 rounded-xl w-fit">
+                    <button @click="matchMode = 'OR'" 
+                        :class="matchMode === 'OR' ? 'bg-white shadow text-blue-600' : 'text-slate-500'"
+                        class="px-4 py-1.5 rounded-lg text-sm font-bold transition">部分符合 (OR)</button>
+                    <button @click="matchMode = 'AND'" 
+                        :class="matchMode === 'AND' ? 'bg-white shadow text-blue-600' : 'text-slate-500'"
+                        class="px-4 py-1.5 rounded-lg text-sm font-bold transition">同時符合 (AND)</button>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <button @click="clearTags" 
+                    class="px-4 py-2 rounded-lg text-sm border border-dashed border-slate-300 hover:bg-slate-50">重設全部</button>
+                
+                <button v-for="tag in allTags" :key="tag"
+                    @click="toggleTag(tag)"
+                    :class="selectedTags.includes(tag) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'"
+                    class="px-4 py-2 rounded-lg text-sm border font-medium transition-all shadow-sm">
+                    {{ tag }}
+                </button>
+            </div>
+            
+            <p class="mt-4 text-xs text-slate-400">
+                目前選擇：<span v-if="selectedTags.length">{{ selectedTags.join(', ') }}</span><span v-else>全部影片</span>
+                （模式：{{ matchMode === 'AND' ? '必須包含所有選中標籤' : '包含其中一個標籤即可' }}）
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div v-for="video in filteredVideos" :key="video.id" class="group">
+                <div class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 border border-slate-200">
+                    <div class="video-container" v-html="video.embedCode"></div>
+                    <div class="p-5">
+                        <h3 class="font-bold text-lg mb-3 group-hover:text-blue-600 transition-colors">{{ video.title }}</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <span v-for="t in video.tags" 
+                                class="text-[11px] uppercase tracking-wider font-bold bg-slate-100 px-2.5 py-1 rounded-md text-slate-500">
+                                #{{ t }}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="container mx-auto p-4 mb-20">
-        <div class="bg-white rounded-2xl p-6 shadow-inner border-2 border-blue-100 text-center">
-            <h2 class="text-2xl font-bold text-blue-600 mb-4">搵樓Call我</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href="tel:+85212345678" class="flex items-center justify-center bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600">
-                    📞 手提：1234 5678
-                </a>
-                <div class="flex items-center justify-center bg-green-500 text-white p-3 rounded-lg">
-                    💬 微信：YourWeChatID
-                </div>
-                <a href="https://wa.me/85212345678" target="_blank" class="flex items-center justify-center bg-green-600 text-white p-3 rounded-lg hover:bg-green-700">
-                    🟢 WhatsApp 聯絡
-                </a>
-            </div>
+        <div v-if="filteredVideos.length === 0" class="py-20 text-center">
+            <div class="text-5xl mb-4">🤷‍♂️</div>
+            <p class="text-slate-500">找不到符合所有條件的影片，試試減少篩選標籤？</p>
         </div>
-    </div>
 
-    <div class="md:hidden fixed bottom-0 w-full bg-white border-t flex justify-around p-3 shadow-2xl z-50">
-        <a href="tel:+85212345678" class="text-blue-600 font-bold text-center">
-            <span class="block text-xl">📞</span> 立即致電
-        </a>
-        <a href="https://wa.me/85212345678" class="text-green-600 font-bold text-center">
-            <span class="block text-xl">💬</span> WhatsApp
-        </a>
+        <section class="mt-16 bg-blue-900 rounded-3xl p-8 text-white text-center shadow-2xl relative overflow-hidden">
+            <div class="relative z-10">
+                <h2 class="text-3xl font-black mb-2">搵樓Call我</h2>
+                <p class="text-blue-200 mb-8 font-medium">專業誠信 · 歡迎隨時查詢</p>
+                
+                <div class="flex flex-col md:flex-row justify-center items-center gap-4">
+                    <a href="tel:+85298765432" class="w-full md:w-auto flex items-center justify-center gap-3 bg-white text-blue-900 px-8 py-4 rounded-2xl font-bold hover:bg-blue-50 transition">
+                        📞 電話 9876 5432
+                    </a>
+                    <a href="https://wa.me/85298765432" class="w-full md:w-auto flex items-center justify-center gap-3 bg-green-500 text-white px-8 py-4 rounded-2xl font-bold hover:bg-green-600 transition">
+                        💬 WhatsApp
+                    </a>
+                    <div class="w-full md:w-auto bg-blue-800 border border-blue-700 px-8 py-4 rounded-2xl font-bold">
+                        微信：Agent_HK_123
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="md:hidden fixed bottom-6 left-4 right-4 z-50">
+        <div class="bg-white/90 backdrop-blur-md shadow-2xl rounded-2xl border border-white p-2 flex gap-2">
+            <a href="tel:+85298765432" class="flex-1 bg-blue-600 text-white py-3 rounded-xl text-center font-bold text-sm shadow-lg shadow-blue-200">📞 立即致電</a>
+            <a href="https://wa.me/85298765432" class="flex-1 bg-green-600 text-white py-3 rounded-xl text-center font-bold text-sm shadow-lg shadow-green-200">💬 WhatsApp</a>
+        </div>
     </div>
 </div>
 
@@ -98,51 +115,73 @@
 
     createApp({
         setup() {
-            const selectedTag = ref('全部');
+            const selectedTags = ref([]);
+            const matchMode = ref('OR'); // 'OR' 或 'AND'
 
-            // 影片資料庫：你只需要在這裡增加或修改影片
             const videos = ref([
                 {
                     id: 1,
-                    title: '西九龍三房豪宅巡禮',
-                    tags: ['豪宅', '西九龍', '三房'],
-                    // YouTube 嵌入代碼範例
-                    embedCode: '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>'
+                    title: '西九龍頂層複式 - 絕美維港景',
+                    tags: ['豪宅', '西九龍', '四房以上', '特色戶'],
+                    embedCode: '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0"></iframe>'
                 },
                 {
                     id: 2,
-                    title: '上車首選！屯門兩房介紹',
+                    title: '屯門精選兩房 - 剛需上車必看',
                     tags: ['上車盤', '屯門', '兩房'],
-                    embedCode: '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>'
+                    embedCode: '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0"></iframe>'
                 },
                 {
                     id: 3,
-                    title: '罕有特色平台戶',
-                    tags: ['特色戶', '豪宅'],
-                    embedCode: '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>'
-                }
+                    title: '啟德新發展區 - 投資潛力三房',
+                    tags: ['啟德', '投資', '三房'],
+                    embedCode: '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0"></iframe>'
+                },
                 {
                     id: 4,
-                    title: 'test',
-                    tags: ['特色戶', '豪宅'],
-                    embedCode: '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>'
+                    title: '元朗村屋全層 - 空間之選',
+                    tags: ['村屋', '元朗', '三房'],
+                    embedCode: '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0"></iframe>'
                 }
             ]);
 
-            // 自動提取所有不重複的 Tags
+            // 自動提取所有標籤
             const allTags = computed(() => {
                 const tags = new Set();
                 videos.value.forEach(v => v.tags.forEach(t => tags.add(t)));
-                return Array.from(tags);
+                return Array.from(tags).sort();
             });
 
-            // 篩選邏輯
+            // 標籤選擇邏輯
+            const toggleTag = (tag) => {
+                const index = selectedTags.value.indexOf(tag);
+                if (index > -1) {
+                    selectedTags.value.splice(index, 1);
+                } else {
+                    selectedTags.value.push(tag);
+                }
+            };
+
+            const clearTags = () => {
+                selectedTags.value = [];
+            };
+
+            // 核心篩選邏輯
             const filteredVideos = computed(() => {
-                if (selectedTag.value === '全部') return videos.value;
-                return videos.value.filter(v => v.tags.includes(selectedTag.value));
+                if (selectedTags.value.length === 0) return videos.value;
+
+                return videos.value.filter(video => {
+                    if (matchMode.value === 'AND') {
+                        // AND 邏輯：影片必須包含所有選定的標籤
+                        return selectedTags.value.every(tag => video.tags.includes(tag));
+                    } else {
+                        // OR 邏輯：影片只要包含其中一個選定的標籤即可
+                        return selectedTags.value.some(tag => video.tags.includes(tag));
+                    }
+                });
             });
 
-            return { videos, selectedTag, allTags, filteredVideos };
+            return { videos, allTags, selectedTags, matchMode, toggleTag, clearTags, filteredVideos };
         }
     }).mount('#app');
 </script>
